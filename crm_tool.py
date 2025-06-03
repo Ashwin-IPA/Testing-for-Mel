@@ -5,7 +5,6 @@ st.title("🩺 Pharmacist CRM Tool")
 
 st.markdown("#### Step 1: Universal Intake")
 
-# --- Universal Patient Intake ---
 with st.form("intake_form"):
     age = st.number_input("Patient age", min_value=0, max_value=120)
     sex = st.radio("Sex at birth", ["Female", "Male", "Other"])
@@ -23,7 +22,6 @@ with st.form("intake_form"):
                                   ["Dysuria", "Urgency", "Frequency", "Suprapubic Pain"])
     submit = st.form_submit_button("Check Eligibility")
 
-# --- Eligibility Engine ---
 if submit:
     st.markdown("---")
     st.subheader("Step 2: Eligibility Summary")
@@ -49,7 +47,6 @@ if submit:
     if eligible_derm:
         st.success("✅ Eligible for Dermatology triage")
 
-    # --- Triage Module Selector ---
     st.markdown("---")
     st.subheader("Step 3: Choose Triage Module")
 
@@ -59,6 +56,9 @@ if submit:
                           "OC Resupply": eligible_oc, 
                           "Dermatology": eligible_derm
                       }.items() if ok])
+
+    consultation_notes = ""
+    summary = ""
 
     # --- UTI Module ---
     if module == "UTI":
@@ -74,12 +74,38 @@ if submit:
         st.markdown("- Follow up with GP if not improved in 48 hrs")
         st.success(f"✅ Treat with: {antibiotic}")
 
-    # --- OC Module Placeholder ---
-    elif module == "OC Resupply":
-        st.markdown("### 💊 OC Resupply Summary")
-        st.success("✅ Patient eligible for 12-month resupply. Ensure documentation, record in dispensing software, and upload to My Health Record if applicable.")
+        summary = f"""Pharmacist Consultation Summary
+--------------------------------
+Service: UTI Screening
+Age: {age}
+Sex: {sex}
+Symptoms: {', '.join(uti_symptoms)}
+Exclusions: None flagged
+Treatment: {antibiotic}
+Notes:
+- Urine sample advised before first dose
+- Follow-up with GP in 48 hours if not improved
+"""
 
-    # --- Dermatology Module Placeholder ---
+    # --- OC Module ---
+    elif module == "OC Resupply":
+        st.markdown("### 💊 OC Resupply")
+        st.success("✅ Patient eligible for 12-month resupply.")
+        summary = f"""Pharmacist Consultation Summary
+--------------------------------
+Service: OC Resupply
+Age: {age}
+Sex: {sex}
+BP Safe: Yes
+GP Review: Yes
+Contraindications: None flagged
+Treatment: Continue current oral contraceptive (max 12-month supply)
+Notes:
+- Document BP, BMI, counselling
+- Upload to dispensing system / My Health Record
+"""
+
+    # --- Dermatology Module ---
     elif module == "Dermatology":
         st.markdown("### 🩹 Dermatology Triage")
         condition = st.selectbox("Select condition:", [
@@ -87,15 +113,38 @@ if submit:
         ])
 
         if condition == "Impetigo":
-            st.success("✅ Treat with topical mupirocin. Refer if widespread/systemic.")
+            advice = "Treat with mupirocin (topical). Refer if systemic or spreading."
         elif condition == "Dermatitis":
-            st.success("✅ Recommend emollients + low-mid corticosteroid. Refer if uncontrolled.")
+            advice = "Recommend emollients + mild corticosteroids. Refer if uncontrolled."
         elif condition == "Plaque Psoriasis":
-            st.warning("⚠️ Mild can be managed with topicals. Moderate-severe = refer to GP/dermatologist.")
+            advice = "Mild: manage with topicals. Moderate-severe: refer to GP."
         elif condition == "Herpes Zoster":
             within_72 = st.checkbox("Onset <72 hrs ago?")
             if within_72:
-                st.success("✅ Start antivirals. Educate about pain and post-herpetic neuralgia.")
+                advice = "Start antivirals. Educate re: post-herpetic neuralgia."
             else:
-                st.warning("⚠️ Refer to GP for symptom control (too late for antivirals).")
+                advice = "Refer to GP for symptom control (too late for antivirals)."
+
+        st.success(advice)
+        summary = f"""Pharmacist Consultation Summary
+--------------------------------
+Service: Dermatology – {condition}
+Age: {age}
+Sex: {sex}
+Treatment Plan:
+- {advice}
+"""
+
+    # --- Report Output ---
+    st.markdown("---")
+    st.subheader("Step 4: Generate Report")
+
+    if summary:
+        st.code(summary, language="text")
+        st.download_button("📄 Download Summary", summary, file_name="pharmacist_summary.txt")
+
+        st.markdown("### 💬 Submit to WellnessVC:")
+        st.markdown("[Open contact form](https://www.wellnessvc.com.au/contact)")
+        st.markdown("Paste the report into the form’s message field.")
+
 
