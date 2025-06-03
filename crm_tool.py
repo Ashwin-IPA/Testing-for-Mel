@@ -1,71 +1,101 @@
 import streamlit as st
 
-st.set_page_config(page_title="Pharmacy CRM Tool", layout="centered")
+st.set_page_config(page_title="Pharmacist CRM Tool", layout="centered")
 st.title("🩺 Pharmacist CRM Tool")
 
-option = st.sidebar.selectbox("Choose Service", ["UTI Screening", "OC Resupply", "Dermatology Triage"])
+st.markdown("#### Step 1: Universal Intake")
 
-st.markdown("---")
+# --- Universal Patient Intake ---
+with st.form("intake_form"):
+    age = st.number_input("Patient age", min_value=0, max_value=120)
+    sex = st.radio("Sex at birth", ["Female", "Male", "Other"])
+    pregnant = st.checkbox("Pregnant or <6 weeks postpartum")
+    smoker_over_35 = st.checkbox("Smoker or vapes (age >35)?")
+    on_oc = st.checkbox("Currently using oral contraception?")
+    bp_safe = st.checkbox("Blood pressure within safe range?")
+    gp_reviewed = st.checkbox("Reviewed by GP for contraception in past 2 years?")
+    migraine_aura = st.checkbox("History of migraine with aura?")
+    vte_history = st.checkbox("History of VTE or high clotting risk?")
+    cancer_history = st.checkbox("Breast cancer history?")
+    immunocompromised = st.checkbox("Immunocompromised or on immunosuppressants?")
+    travel_recent = st.checkbox("Recent overseas travel (past 6 months)?")
+    uti_symptoms = st.multiselect("UTI symptoms (select all that apply):", 
+                                  ["Dysuria", "Urgency", "Frequency", "Suprapubic Pain"])
+    submit = st.form_submit_button("Check Eligibility")
 
-if option == "UTI Screening":
-    st.header("Urinary Tract Infection (UTI) Screening")
+# --- Eligibility Engine ---
+if submit:
+    st.markdown("---")
+    st.subheader("Step 2: Eligibility Summary")
 
-    age = st.number_input("Age", min_value=0, max_value=120)
-    sex = st.radio("Sex", ["Female", "Other"])
-    symptoms = st.multiselect("Select all that apply", ["Dysuria", "Urgency", "Frequency", "Suprapubic Pain"])
-    exclusions = st.checkbox("Any of the following apply?", help="e.g. Pregnancy, fever, recurrent UTI, renal issues, diabetes, immunosuppressed")
+    eligible_uti = (sex == "Female" and 18 <= age <= 65 and len(uti_symptoms) >= 2 
+                    and not pregnant and not immunocompromised)
+    eligible_oc = (sex == "Female" and on_oc and age >= 16 and gp_reviewed 
+                   and bp_safe and not smoker_over_35 
+                   and not migraine_aura and not vte_history and not cancer_history)
+    eligible_derm = True  # Always allow derm triage
 
-    if sex != "Female" or not (18 <= age <= 65):
-        result = "❌ Not eligible: Must be female aged 18–65."
-    elif len(symptoms) < 2:
-        result = "⚠️ One symptom only. Recommend conservative management and GP review if worsens."
-    elif exclusions:
-        result = "❌ Exclusion criteria met. Refer to GP for assessment."
+    st.markdown("#### 🔍 Eligibility:")
+    if eligible_uti:
+        st.success("✅ Eligible for UTI screening")
     else:
-        antibiotic = st.selectbox("Choose treatment", ["Trimethoprim (1 tab nightly x 3)", "Nitrofurantoin (1 tab q6h x 5)", "Cefalexin (1 tab BD x 5)"])
-        result = f"✅ Treat with {antibiotic}. Provide urine jar + advise GP follow-up in 48hrs."
+        st.warning("🚫 Not eligible for UTI screening")
 
-    st.markdown("### Summary:")
-    st.info(result)
-
-elif option == "OC Resupply":
-    st.header("Oral Contraceptive Resupply")
-
-    age = st.number_input("Age", min_value=0, max_value=120)
-    reviewed = st.checkbox("Reviewed by GP in last 2 years for contraception?")
-    bp_ok = st.checkbox("Blood Pressure within safe range?")
-    bmi = st.number_input("BMI")
-    issues = st.checkbox("Any of the following?", help="Smoking over 35, migraines with aura, VTE risk, breast cancer history")
-
-    if not reviewed:
-        result = "❌ Not eligible: GP review >2 years ago. Refer to GP."
-    elif not bp_ok:
-        result = "❌ BP not in safe range. Refer to GP."
-    elif issues:
-        result = "❌ Exclusion criteria met. Refer to GP."
+    if eligible_oc:
+        st.success("✅ Eligible for OC resupply")
     else:
-        result = "✅ Eligible for resupply. Up to 12 months of current OCP. Ensure documentation and counselling."
+        st.warning("🚫 Not eligible for OC resupply")
 
-    st.markdown("### Summary:")
-    st.info(result)
+    if eligible_derm:
+        st.success("✅ Eligible for Dermatology triage")
 
-elif option == "Dermatology Triage":
-    st.header("Dermatology Triage")
+    # --- Triage Module Selector ---
+    st.markdown("---")
+    st.subheader("Step 3: Choose Triage Module")
 
-    condition = st.selectbox("Choose Condition", ["Impetigo", "Dermatitis", "Plaque Psoriasis", "Herpes Zoster"])
+    module = st.radio("Select available service to proceed:", 
+                      options=[m for m, ok in {
+                          "UTI": eligible_uti, 
+                          "OC Resupply": eligible_oc, 
+                          "Dermatology": eligible_derm
+                      }.items() if ok])
 
-    if condition == "Impetigo":
-        result = "✅ Treat with mupirocin (topical). Refer to GP if systemic signs or spreading."
-    elif condition == "Dermatitis":
-        result = "✅ Recommend emollients and mild corticosteroids. Refer if uncontrolled or widespread."
-    elif condition == "Plaque Psoriasis":
-        result = "⚠️ Manage mild with topical corticosteroids. Refer moderate–severe to GP/dermatologist."
-    elif condition == "Herpes Zoster":
-        within_72 = st.checkbox("Is patient within 72 hrs of rash onset?")
-        if within_72:
-            result = "✅ Start antiviral treatment (e.g. valaciclovir). Educate + monitor for neuralgia."
-        else:
-            result = "⚠️ Too late for antivirals. Refer to GP for pain management and follow-up."
+    # --- UTI Module ---
+    if module == "UTI":
+        st.markdown("### 💊 UTI Screening")
+        antibiotic = st.selectbox("Recommended treatment:", [
+            "Trimethoprim 300mg (1 at night for 3 nights)",
+            "Nitrofurantoin 100mg (QID for 5 days)",
+            "Cefalexin 500mg (BD for 5 days)"
+        ])
+        st.markdown("**Patient should:**")
+        st.markdown("- Start antibiotics now")
+        st.markdown("- Keep a urine sample refrigerated before first dose")
+        st.markdown("- Follow up with GP if not improved in 48 hrs")
+        st.success(f"✅ Treat with: {antibiotic}")
 
-    st.markdown("### Summary:")
-    st.info(result)
+    # --- OC Module Placeholder ---
+    elif module == "OC Resupply":
+        st.markdown("### 💊 OC Resupply Summary")
+        st.success("✅ Patient eligible for 12-month resupply. Ensure documentation, record in dispensing software, and upload to My Health Record if applicable.")
+
+    # --- Dermatology Module Placeholder ---
+    elif module == "Dermatology":
+        st.markdown("### 🩹 Dermatology Triage")
+        condition = st.selectbox("Select condition:", [
+            "Impetigo", "Dermatitis", "Plaque Psoriasis", "Herpes Zoster"
+        ])
+
+        if condition == "Impetigo":
+            st.success("✅ Treat with topical mupirocin. Refer if widespread/systemic.")
+        elif condition == "Dermatitis":
+            st.success("✅ Recommend emollients + low-mid corticosteroid. Refer if uncontrolled.")
+        elif condition == "Plaque Psoriasis":
+            st.warning("⚠️ Mild can be managed with topicals. Moderate-severe = refer to GP/dermatologist.")
+        elif condition == "Herpes Zoster":
+            within_72 = st.checkbox("Onset <72 hrs ago?")
+            if within_72:
+                st.success("✅ Start antivirals. Educate about pain and post-herpetic neuralgia.")
+            else:
+                st.warning("⚠️ Refer to GP for symptom control (too late for antivirals).")
+
