@@ -20,6 +20,9 @@ with st.form("intake_form"):
     travel_recent = st.checkbox("Recent overseas travel (past 6 months)?")
     uti_symptoms = st.multiselect("UTI symptoms (select all that apply):", 
                                   ["Dysuria", "Urgency", "Frequency", "Suprapubic Pain"])
+    skin_condition = st.selectbox("Suspected skin condition (if any):", [
+        "None", "Impetigo", "Dermatitis", "Plaque Psoriasis", "Herpes Zoster"
+    ])
     submit = st.form_submit_button("Check Eligibility")
 
 if submit:
@@ -31,7 +34,7 @@ if submit:
     eligible_oc = (sex == "Female" and on_oc and age >= 16 and gp_reviewed 
                    and bp_safe and not smoker_over_35 
                    and not migraine_aura and not vte_history and not cancer_history)
-    eligible_derm = True  # Always allow derm triage
+    eligible_derm = (skin_condition != "None")
 
     st.markdown("#### 🔍 Eligibility:")
     if eligible_uti:
@@ -45,22 +48,23 @@ if submit:
         st.warning("🚫 Not eligible for OC resupply")
 
     if eligible_derm:
-        st.success("✅ Eligible for Dermatology triage")
+        st.success(f"✅ Eligible for Dermatology – {skin_condition}")
+    else:
+        st.warning("🚫 No dermatology condition selected")
 
     st.markdown("---")
     st.subheader("Step 3: Choose Triage Module")
 
-    module = st.radio("Select available service to proceed:", 
+    module = st.radio("Select service to continue:", 
                       options=[m for m, ok in {
                           "UTI": eligible_uti, 
                           "OC Resupply": eligible_oc, 
-                          "Dermatology": eligible_derm
-                      }.items() if ok])
+                          skin_condition: eligible_derm
+                      }.items() if ok and m != "None"])
 
-    consultation_notes = ""
     summary = ""
 
-    # --- UTI Module ---
+    # --- UTI ---
     if module == "UTI":
         st.markdown("### 💊 UTI Screening")
         antibiotic = st.selectbox("Recommended treatment:", [
@@ -83,13 +87,13 @@ Symptoms: {', '.join(uti_symptoms)}
 Exclusions: None flagged
 Treatment: {antibiotic}
 Notes:
-- Urine sample advised before first dose
-- Follow-up with GP in 48 hours if not improved
+- Urine sample before first dose
+- GP review in 48 hrs if not improved
 """
 
-    # --- OC Module ---
+    # --- OC Resupply ---
     elif module == "OC Resupply":
-        st.markdown("### 💊 OC Resupply")
+        st.markdown("### 💊 Oral Contraceptive Resupply")
         st.success("✅ Patient eligible for 12-month resupply.")
         summary = f"""Pharmacist Consultation Summary
 --------------------------------
@@ -105,46 +109,88 @@ Notes:
 - Upload to dispensing system / My Health Record
 """
 
-    # --- Dermatology Module ---
-    elif module == "Dermatology":
-        st.markdown("### 🩹 Dermatology Triage")
-        condition = st.selectbox("Select condition:", [
-            "Impetigo", "Dermatitis", "Plaque Psoriasis", "Herpes Zoster"
-        ])
-
-        if condition == "Impetigo":
-            advice = "Treat with mupirocin (topical). Refer if systemic or spreading."
-        elif condition == "Dermatitis":
-            advice = "Recommend emollients + mild corticosteroids. Refer if uncontrolled."
-        elif condition == "Plaque Psoriasis":
-            advice = "Mild: manage with topicals. Moderate-severe: refer to GP."
-        elif condition == "Herpes Zoster":
-            within_72 = st.checkbox("Onset <72 hrs ago?")
-            if within_72:
-                advice = "Start antivirals. Educate re: post-herpetic neuralgia."
-            else:
-                advice = "Refer to GP for symptom control (too late for antivirals)."
-
+# CONTINUED IN PART 2 BELOW ↓↓↓
+    # --- Dermatology Modules ---
+    elif module == "Impetigo":
+        st.markdown("### 🩹 Impetigo Triage")
+        severe = st.checkbox("Is the infection spreading or systemic?")
+        if severe:
+            advice = "Refer to GP for systemic antibiotics."
+        else:
+            advice = "Treat with topical mupirocin. Educate on hygiene and crust removal."
         st.success(advice)
         summary = f"""Pharmacist Consultation Summary
 --------------------------------
-Service: Dermatology – {condition}
+Service: Dermatology – Impetigo
 Age: {age}
 Sex: {sex}
 Treatment Plan:
 - {advice}
 """
 
-    # --- Report Output ---
+    elif module == "Dermatitis":
+        st.markdown("### 🩹 Dermatitis Triage")
+        area = st.selectbox("Severity area involved:", ["Localised", "Widespread"])
+        infected = st.checkbox("Signs of secondary infection (oozing, crusts)?")
+        if infected or area == "Widespread":
+            advice = "Refer to GP for further assessment."
+        else:
+            advice = "Recommend emollients and low-potency topical corticosteroids."
+        st.success(advice)
+        summary = f"""Pharmacist Consultation Summary
+--------------------------------
+Service: Dermatology – Dermatitis
+Age: {age}
+Sex: {sex}
+Treatment Plan:
+- {advice}
+"""
+
+    elif module == "Plaque Psoriasis":
+        st.markdown("### 🩹 Psoriasis Triage")
+        areas = st.slider("Estimated body area involved (%)", 0, 100, 5)
+        has_joint_pain = st.checkbox("Associated joint pain or nail involvement?")
+        if areas >= 10 or has_joint_pain:
+            advice = "Refer to GP or dermatologist. Moderate–severe case."
+        else:
+            advice = "Manage with topical corticosteroids. Recommend moisturiser + trigger avoidance."
+        st.success(advice)
+        summary = f"""Pharmacist Consultation Summary
+--------------------------------
+Service: Dermatology – Plaque Psoriasis
+Age: {age}
+Sex: {sex}
+Severity: {areas}% BSA
+Treatment Plan:
+- {advice}
+"""
+
+    elif module == "Herpes Zoster":
+        st.markdown("### 🩹 Herpes Zoster Triage")
+        onset_72 = st.checkbox("Onset <72 hrs ago?")
+        immune_safe = not immunocompromised
+        if onset_72 and immune_safe:
+            advice = "Start antivirals. Educate on pain and post-herpetic neuralgia."
+        else:
+            advice = "Refer to GP – outside treatment window or high-risk patient."
+        st.success(advice)
+        summary = f"""Pharmacist Consultation Summary
+--------------------------------
+Service: Dermatology – Herpes Zoster
+Age: {age}
+Sex: {sex}
+Onset <72 hrs: {'Yes' if onset_72 else 'No'}
+Treatment Plan:
+- {advice}
+"""
+
+    # --- Step 4: Report Generator ---
     st.markdown("---")
     st.subheader("Step 4: Generate Report")
 
     if summary:
         st.code(summary, language="text")
         st.download_button("📄 Download Summary", summary, file_name="pharmacist_summary.txt")
-
         st.markdown("### 💬 Submit to WellnessVC:")
-        st.markdown("[Open contact form](https://www.wellnessvc.com.au/contact)")
-        st.markdown("Paste the report into the form’s message field.")
-
-
+        st.markdown("[Open Contact Form](https://www.wellnessvc.com.au/contact)")
+        st.markdown("Paste this report into the message box for pharmacist consultation logging.")
