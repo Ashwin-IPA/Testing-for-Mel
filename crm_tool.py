@@ -9,12 +9,15 @@ wellness_logo = Image.open("wellnessvc_logo.png")
 # --- Page Setup ---
 st.set_page_config(page_title="Pharmacist CRM Tool", layout="centered")
 
-# --- Header Section: Logo + Title Aligned ---
-col1, col2 = st.columns([1, 4])
+# --- Header Section: Logo + Title Aligned and Larger ---
+col1, col2 = st.columns([1, 5])
 with col1:
-    st.image(pharma_logo, width=100)
+    st.image(pharma_logo, width=180)
 with col2:
-    st.markdown("<h1 style='margin-top: 10px;'>Pharmacist CRM Tool</h1>", unsafe_allow_html=True)
+    st.markdown(
+        "<h1 style='display: flex; align-items: center; height: 100%;'>Pharmacist CRM Tool</h1>",
+        unsafe_allow_html=True
+    )
 
 st.subheader("Step 1: Patient & Pharmacist Intake")
 
