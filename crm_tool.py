@@ -1,23 +1,31 @@
 import streamlit as st
 from datetime import date
 from PIL import Image
-
-# --- Load Logos ---
-pharma_logo = Image.open("pharmaprograms_logo.png")
-wellness_logo = Image.open("wellnessvc_logo.png")
+import base64
+from io import BytesIO
 
 # --- Page Setup ---
 st.set_page_config(page_title="Pharmacist CRM Tool", layout="centered")
 
-# --- Header Section: Logo + Title Aligned and Larger ---
-col1, col2 = st.columns([1, 5])
-with col1:
-    st.image(pharma_logo, width=180)
-with col2:
-    st.markdown(
-        "<h1 style='display: flex; align-items: center; height: 100%;'>Pharmacist CRM Tool</h1>",
-        unsafe_allow_html=True
-    )
+# --- Load Logos ---
+pharma_logo_path = "pharmaprograms_logo.png"
+wellness_logo = Image.open("wellnessvc_logo.png")
+
+# --- Base64 Logo Converter ---
+def get_base64_logo(img_path):
+    buffered = BytesIO()
+    Image.open(img_path).save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode()
+
+logo_base64 = get_base64_logo(pharma_logo_path)
+
+# --- Custom Header: PharmaPrograms Logo + Title ---
+st.markdown(f"""
+<div style="display: flex; align-items: center; gap: 20px;">
+    <img src="data:image/png;base64,{logo_base64}" alt="PharmaPrograms" style="height: 100px;">
+    <h1 style="margin: 0;">Pharmacist CRM Tool</h1>
+</div>
+""", unsafe_allow_html=True)
 
 st.subheader("Step 1: Patient & Pharmacist Intake")
 
@@ -173,3 +181,4 @@ Consultation Date: {consult_date}
     with col2:
         st.markdown("If patient is ineligible or prefers remote care:")
         st.markdown("[Go to WellnessVC Contact Page](https://www.wellnessvc.com.au/contact)")
+
