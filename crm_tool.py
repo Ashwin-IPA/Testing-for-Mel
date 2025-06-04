@@ -1,13 +1,46 @@
 import streamlit as st
+from datetime import date
+from PIL import Image
 
+# --- Load Logos ---
+pharma_logo = Image.open("pharmaprograms_logo.png")
+wellness_logo = Image.open("wellnessvc_logo.png")
+
+# --- Page Setup ---
 st.set_page_config(page_title="Pharmacist CRM Tool", layout="centered")
-st.title("🩺 Pharmacist CRM Tool")
 
-st.markdown("#### Step 1: Universal Intake")
+col1, col2 = st.columns([1, 6])
+with col1:
+    st.image(pharma_logo, width=100)
+with col2:
+    st.title("Pharmacist CRM Tool")
 
+st.markdown("#### Step 1: Patient & Pharmacist Intake")
+
+# --- Intake Form ---
 with st.form("intake_form"):
-    age = st.number_input("Patient age", min_value=0, max_value=120)
-    sex = st.radio("Sex at birth", ["Female", "Male", "Other"])
+    st.markdown("##### 🧍 Patient Information")
+    fname = st.text_input("First name*")
+    lname = st.text_input("Surname*")
+    dob = st.date_input("Date of Birth*", max_value=date.today())
+    sex = st.selectbox("Sex*", ["Female", "Male", "Other"])
+    street = st.text_input("Street")
+    suburb = st.text_input("Suburb")
+    postcode = st.text_input("Postcode")
+    state = st.text_input("State")
+    mobile = st.text_input("Mobile number")
+    phone = st.text_input("Phone number (optional)")
+    email = st.text_input("Email address")
+    medicare = st.text_input("Medicare number (optional)")
+    medicare_expiry = st.text_input("Medicare expiry (MM/YY)")
+    dva = st.text_input("DVA (optional)")
+
+    st.markdown("##### 👩‍⚕️ Pharmacist Details")
+    consult_date = st.date_input("Consultation date*", value=date.today())
+    pharmacist_name = st.text_input("Pharmacist full name*", value="Your Name")
+    ahpra = st.text_input("AHPRA No.", value="PHA000XXXX")
+
+    st.markdown("##### 🧾 Clinical Screening")
     pregnant = st.checkbox("Pregnant or <6 weeks postpartum")
     smoker_over_35 = st.checkbox("Smoker or vapes (age >35)?")
     on_oc = st.checkbox("Currently using oral contraception?")
@@ -20,15 +53,17 @@ with st.form("intake_form"):
     travel_recent = st.checkbox("Recent overseas travel (past 6 months)?")
     uti_symptoms = st.multiselect("UTI symptoms (select all that apply):", 
                                   ["Dysuria", "Urgency", "Frequency", "Suprapubic Pain"])
-    skin_condition = st.selectbox("Suspected skin condition (if any):", [
+    skin_condition = st.selectbox("Suspected skin condition:", [
         "None", "Impetigo", "Dermatitis", "Plaque Psoriasis", "Herpes Zoster"
     ])
     submit = st.form_submit_button("Check Eligibility")
 
+# --- Logic Engine ---
 if submit:
     st.markdown("---")
     st.subheader("Step 2: Eligibility Summary")
 
+    age = date.today().year - dob.year
     eligible_uti = (sex == "Female" and 18 <= age <= 65 and len(uti_symptoms) >= 2 
                     and not pregnant and not immunocompromised)
     eligible_oc = (sex == "Female" and on_oc and age >= 16 and gp_reviewed 
@@ -36,11 +71,10 @@ if submit:
                    and not migraine_aura and not vte_history and not cancer_history)
     eligible_derm = (skin_condition != "None")
 
-    st.markdown("#### 🔍 Eligibility:")
     if eligible_uti:
         st.success("✅ Eligible for UTI screening")
     else:
-        st.warning("🚫 Not eligible for UTI screening")
+        st.warning("🚫 Not eligible for UTI")
 
     if eligible_oc:
         st.success("✅ Eligible for OC resupply")
@@ -52,145 +86,100 @@ if submit:
     else:
         st.warning("🚫 No dermatology condition selected")
 
-    st.markdown("---")
-    st.subheader("Step 3: Choose Triage Module")
+    st.subheader("Step 3: Choose Module")
+    module = st.radio("Proceed to:", [
+        m for m, ok in {
+            "UTI": eligible_uti, 
+            "OC Resupply": eligible_oc, 
+            skin_condition: eligible_derm
+        }.items() if ok and m != "None"
+    ])
 
-    module = st.radio("Select service to continue:", 
-                      options=[m for m, ok in {
-                          "UTI": eligible_uti, 
-                          "OC Resupply": eligible_oc, 
-                          skin_condition: eligible_derm
-                      }.items() if ok and m != "None"])
-
+    # --- Clinical Triage Logic ---
     summary = ""
 
-    # --- UTI ---
     if module == "UTI":
-        st.markdown("### 💊 UTI Screening")
         antibiotic = st.selectbox("Recommended treatment:", [
             "Trimethoprim 300mg (1 at night for 3 nights)",
             "Nitrofurantoin 100mg (QID for 5 days)",
             "Cefalexin 500mg (BD for 5 days)"
         ])
-        st.markdown("**Patient should:**")
-        st.markdown("- Start antibiotics now")
-        st.markdown("- Keep a urine sample refrigerated before first dose")
-        st.markdown("- Follow up with GP if not improved in 48 hrs")
-        st.success(f"✅ Treat with: {antibiotic}")
-
-        summary = f"""Pharmacist Consultation Summary
---------------------------------
-Service: UTI Screening
-Age: {age}
-Sex: {sex}
+        st.success("Start treatment. Advise urine sample + GP review in 48 hrs.")
+        summary = f"""UTI Consultation Summary
+Patient: {fname} {lname}, {age} y/o {sex}
 Symptoms: {', '.join(uti_symptoms)}
-Exclusions: None flagged
 Treatment: {antibiotic}
-Notes:
-- Urine sample before first dose
-- GP review in 48 hrs if not improved
-"""
+Notes: Urine sample advised. GP review in 48 hrs if not improved."""
 
-    # --- OC Resupply ---
     elif module == "OC Resupply":
-        st.markdown("### 💊 Oral Contraceptive Resupply")
-        st.success("✅ Patient eligible for 12-month resupply.")
-        summary = f"""Pharmacist Consultation Summary
---------------------------------
-Service: OC Resupply
-Age: {age}
-Sex: {sex}
-BP Safe: Yes
-GP Review: Yes
-Contraindications: None flagged
-Treatment: Continue current oral contraceptive (max 12-month supply)
-Notes:
-- Document BP, BMI, counselling
-- Upload to dispensing system / My Health Record
-"""
+        st.success("Eligible for 12-month continuation of current OC.")
+        summary = f"""OC Resupply Summary
+Patient: {fname} {lname}, {age} y/o {sex}
+No UKMEC contraindications.
+Recommendation: Resupply up to 12 months. Document BP, BMI, counselling."""
 
-# CONTINUED IN PART 2 BELOW ↓↓↓
-    # --- Dermatology Modules ---
     elif module == "Impetigo":
-        st.markdown("### 🩹 Impetigo Triage")
-        severe = st.checkbox("Is the infection spreading or systemic?")
+        severe = st.checkbox("Spreading/systemic?")
         if severe:
-            advice = "Refer to GP for systemic antibiotics."
+            advice = "Refer to GP for oral antibiotics."
         else:
-            advice = "Treat with topical mupirocin. Educate on hygiene and crust removal."
+            advice = "Topical mupirocin recommended."
         st.success(advice)
-        summary = f"""Pharmacist Consultation Summary
---------------------------------
-Service: Dermatology – Impetigo
-Age: {age}
-Sex: {sex}
-Treatment Plan:
-- {advice}
-"""
+        summary = f"Dermatology – Impetigo\nAdvice: {advice}"
 
     elif module == "Dermatitis":
-        st.markdown("### 🩹 Dermatitis Triage")
-        area = st.selectbox("Severity area involved:", ["Localised", "Widespread"])
-        infected = st.checkbox("Signs of secondary infection (oozing, crusts)?")
+        infected = st.checkbox("Signs of infection?")
+        area = st.selectbox("Severity:", ["Localised", "Widespread"])
         if infected or area == "Widespread":
-            advice = "Refer to GP for further assessment."
+            advice = "Refer to GP."
         else:
-            advice = "Recommend emollients and low-potency topical corticosteroids."
+            advice = "Emollients + mild topical corticosteroids."
         st.success(advice)
-        summary = f"""Pharmacist Consultation Summary
---------------------------------
-Service: Dermatology – Dermatitis
-Age: {age}
-Sex: {sex}
-Treatment Plan:
-- {advice}
-"""
+        summary = f"Dermatology – Dermatitis\nAdvice: {advice}"
 
     elif module == "Plaque Psoriasis":
-        st.markdown("### 🩹 Psoriasis Triage")
-        areas = st.slider("Estimated body area involved (%)", 0, 100, 5)
-        has_joint_pain = st.checkbox("Associated joint pain or nail involvement?")
-        if areas >= 10 or has_joint_pain:
-            advice = "Refer to GP or dermatologist. Moderate–severe case."
+        bsa = st.slider("Body area affected (%)", 0, 100, 5)
+        pain = st.checkbox("Joint/nail involvement?")
+        if bsa > 10 or pain:
+            advice = "Refer for systemic management."
         else:
-            advice = "Manage with topical corticosteroids. Recommend moisturiser + trigger avoidance."
+            advice = "Topical corticosteroids + moisturiser."
         st.success(advice)
-        summary = f"""Pharmacist Consultation Summary
---------------------------------
-Service: Dermatology – Plaque Psoriasis
-Age: {age}
-Sex: {sex}
-Severity: {areas}% BSA
-Treatment Plan:
-- {advice}
-"""
+        summary = f"Dermatology – Psoriasis\nBSA: {bsa}%\nAdvice: {advice}"
 
     elif module == "Herpes Zoster":
-        st.markdown("### 🩹 Herpes Zoster Triage")
-        onset_72 = st.checkbox("Onset <72 hrs ago?")
-        immune_safe = not immunocompromised
-        if onset_72 and immune_safe:
-            advice = "Start antivirals. Educate on pain and post-herpetic neuralgia."
+        onset = st.checkbox("Onset <72 hours ago?")
+        if onset and not immunocompromised:
+            advice = "Start antivirals. Educate re: pain."
         else:
-            advice = "Refer to GP – outside treatment window or high-risk patient."
+            advice = "Refer to GP for management."
         st.success(advice)
-        summary = f"""Pharmacist Consultation Summary
---------------------------------
-Service: Dermatology – Herpes Zoster
-Age: {age}
-Sex: {sex}
-Onset <72 hrs: {'Yes' if onset_72 else 'No'}
-Treatment Plan:
-- {advice}
+        summary = f"Dermatology – Shingles\nAdvice: {advice}"
+
+    # --- Step 4: Summary + WellnessVC Contact ---
+    st.markdown("---")
+    st.subheader("Step 4: Summary + Referral")
+
+    full_summary = f"""Pharmacist Consultation Summary
+----------------------------
+Patient: {fname} {lname}
+DOB: {dob}, Sex: {sex}
+Pharmacist: {pharmacist_name}, AHPRA: {ahpra}
+Consultation Date: {consult_date}
+
+{summary}
 """
 
-    # --- Step 4: Report Generator ---
-    st.markdown("---")
-    st.subheader("Step 4: Generate Report")
+    st.text_area("📋 Summary", value=full_summary, height=200)
+    st.download_button("📄 Download Summary", full_summary, file_name="consultation_summary.txt")
 
-    if summary:
-        st.code(summary, language="text")
-        st.download_button("📄 Download Summary", summary, file_name="pharmacist_summary.txt")
-        st.markdown("### 💬 Submit to WellnessVC:")
-        st.markdown("[Open Contact Form](https://www.wellnessvc.com.au/contact)")
-        st.markdown("Paste this report into the message box for pharmacist consultation logging.")
+    # --- Always Show WellnessVC Contact ---
+    st.markdown("---")
+    st.markdown("### 🩺 Telehealth Referral Option (WellnessVC)")
+    colA, colB = st.columns([1, 5])
+    with colA:
+        st.image(wellness_logo, width=80)
+    with colB:
+        st.markdown("If the patient is ineligible or prefers telehealth, refer to:")
+        st.markdown("[📩 Contact WellnessVC Telehealth](https://www.wellnessvc.com.au/contact)")
+
