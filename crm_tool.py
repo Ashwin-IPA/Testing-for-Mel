@@ -179,7 +179,7 @@ Consultation Date: {consult_date}
     with col1:
         st.image(wellness_logo, width=80)
     with col2:
-        st.markdown("If patient is ineligible or prefers remote care:")
+        st.markdown("If patient is both legible OR ineligible, please direct to:")
         st.markdown("[Go to WellnessVC Contact Page](https://www.wellnessvc.com.au/contact)")
 
 
