@@ -9,17 +9,15 @@ wellness_logo = Image.open("wellnessvc_logo.png")
 # --- Page Setup ---
 st.set_page_config(page_title="Pharmacist CRM Tool", layout="centered")
 
-col1, col2 = st.columns([1, 6])
-with col1:
-    st.image(pharma_logo, width=100)
-with col2:
-    st.title("Pharmacist CRM Tool")
+# --- Header with PharmaPrograms logo and Title ---
+st.image(pharma_logo, width=300)
+st.markdown("<h1 style='text-align: center;'>Pharmacist CRM Tool</h1>", unsafe_allow_html=True)
 
-st.markdown("#### Step 1: Patient & Pharmacist Intake")
+st.subheader("Step 1: Patient & Pharmacist Intake")
 
 # --- Intake Form ---
 with st.form("intake_form"):
-    st.markdown("##### 🧍 Patient Information")
+    st.markdown("Patient Information")
     fname = st.text_input("First name*")
     lname = st.text_input("Surname*")
     dob = st.date_input("Date of Birth*", max_value=date.today())
@@ -35,12 +33,12 @@ with st.form("intake_form"):
     medicare_expiry = st.text_input("Medicare expiry (MM/YY)")
     dva = st.text_input("DVA (optional)")
 
-    st.markdown("##### 👩‍⚕️ Pharmacist Details")
+    st.markdown("Consulting Pharmacist Details")
     consult_date = st.date_input("Consultation date*", value=date.today())
     pharmacist_name = st.text_input("Pharmacist full name*", value="Your Name")
     ahpra = st.text_input("AHPRA No.", value="PHA000XXXX")
 
-    st.markdown("##### 🧾 Clinical Screening")
+    st.markdown("Clinical Screening")
     pregnant = st.checkbox("Pregnant or <6 weeks postpartum")
     smoker_over_35 = st.checkbox("Smoker or vapes (age >35)?")
     on_oc = st.checkbox("Currently using oral contraception?")
@@ -72,22 +70,22 @@ if submit:
     eligible_derm = (skin_condition != "None")
 
     if eligible_uti:
-        st.success("✅ Eligible for UTI screening")
+        st.success("Eligible for UTI screening")
     else:
-        st.warning("🚫 Not eligible for UTI")
+        st.warning("Not eligible for UTI screening")
 
     if eligible_oc:
-        st.success("✅ Eligible for OC resupply")
+        st.success("Eligible for OC resupply")
     else:
-        st.warning("🚫 Not eligible for OC resupply")
+        st.warning("Not eligible for OC resupply")
 
     if eligible_derm:
-        st.success(f"✅ Eligible for Dermatology – {skin_condition}")
+        st.success(f"Eligible for Dermatology – {skin_condition}")
     else:
-        st.warning("🚫 No dermatology condition selected")
+        st.warning("No dermatology condition selected")
 
-    st.subheader("Step 3: Choose Module")
-    module = st.radio("Proceed to:", [
+    st.subheader("Step 3: Choose Service")
+    module = st.radio("Select to proceed:", [
         m for m, ok in {
             "UTI": eligible_uti, 
             "OC Resupply": eligible_oc, 
@@ -95,7 +93,7 @@ if submit:
         }.items() if ok and m != "None"
     ])
 
-    # --- Clinical Triage Logic ---
+    # --- Clinical Logic ---
     summary = ""
 
     if module == "UTI":
@@ -104,7 +102,7 @@ if submit:
             "Nitrofurantoin 100mg (QID for 5 days)",
             "Cefalexin 500mg (BD for 5 days)"
         ])
-        st.success("Start treatment. Advise urine sample + GP review in 48 hrs.")
+        st.success("Start treatment. Advise urine sample and GP review in 48 hrs.")
         summary = f"""UTI Consultation Summary
 Patient: {fname} {lname}, {age} y/o {sex}
 Symptoms: {', '.join(uti_symptoms)}
@@ -119,46 +117,34 @@ No UKMEC contraindications.
 Recommendation: Resupply up to 12 months. Document BP, BMI, counselling."""
 
     elif module == "Impetigo":
-        severe = st.checkbox("Spreading/systemic?")
-        if severe:
-            advice = "Refer to GP for oral antibiotics."
-        else:
-            advice = "Topical mupirocin recommended."
+        severe = st.checkbox("Is infection spreading/systemic?")
+        advice = "Refer to GP for systemic antibiotics." if severe else "Topical mupirocin recommended."
         st.success(advice)
         summary = f"Dermatology – Impetigo\nAdvice: {advice}"
 
     elif module == "Dermatitis":
         infected = st.checkbox("Signs of infection?")
         area = st.selectbox("Severity:", ["Localised", "Widespread"])
-        if infected or area == "Widespread":
-            advice = "Refer to GP."
-        else:
-            advice = "Emollients + mild topical corticosteroids."
+        advice = "Refer to GP." if infected or area == "Widespread" else "Emollients + mild corticosteroids."
         st.success(advice)
         summary = f"Dermatology – Dermatitis\nAdvice: {advice}"
 
     elif module == "Plaque Psoriasis":
         bsa = st.slider("Body area affected (%)", 0, 100, 5)
         pain = st.checkbox("Joint/nail involvement?")
-        if bsa > 10 or pain:
-            advice = "Refer for systemic management."
-        else:
-            advice = "Topical corticosteroids + moisturiser."
+        advice = "Refer for systemic management." if bsa > 10 or pain else "Topical corticosteroids + moisturiser."
         st.success(advice)
         summary = f"Dermatology – Psoriasis\nBSA: {bsa}%\nAdvice: {advice}"
 
     elif module == "Herpes Zoster":
         onset = st.checkbox("Onset <72 hours ago?")
-        if onset and not immunocompromised:
-            advice = "Start antivirals. Educate re: pain."
-        else:
-            advice = "Refer to GP for management."
+        advice = "Start antivirals." if onset and not immunocompromised else "Refer to GP."
         st.success(advice)
-        summary = f"Dermatology – Shingles\nAdvice: {advice}"
+        summary = f"Dermatology – Herpes Zoster\nAdvice: {advice}"
 
-    # --- Step 4: Summary + WellnessVC Contact ---
+    # --- Summary Block ---
     st.markdown("---")
-    st.subheader("Step 4: Summary + Referral")
+    st.subheader("Step 4: Summary and Telehealth Option")
 
     full_summary = f"""Pharmacist Consultation Summary
 ----------------------------
@@ -169,17 +155,16 @@ Consultation Date: {consult_date}
 
 {summary}
 """
+    st.text_area("Consultation Summary", value=full_summary, height=250)
+    st.download_button("Download Summary", full_summary, file_name="consultation_summary.txt")
 
-    st.text_area("📋 Summary", value=full_summary, height=200)
-    st.download_button("📄 Download Summary", full_summary, file_name="consultation_summary.txt")
-
-    # --- Always Show WellnessVC Contact ---
+    # --- Always Show Telehealth ---
     st.markdown("---")
-    st.markdown("### 🩺 Telehealth Referral Option (WellnessVC)")
-    colA, colB = st.columns([1, 5])
-    with colA:
+    st.subheader("WellnessVC Telehealth Option")
+    col1, col2 = st.columns([1, 5])
+    with col1:
         st.image(wellness_logo, width=80)
-    with colB:
-        st.markdown("If the patient is ineligible or prefers telehealth, refer to:")
-        st.markdown("[📩 Contact WellnessVC Telehealth](https://www.wellnessvc.com.au/contact)")
+    with col2:
+        st.markdown("If patient is ineligible or prefers remote care:")
+        st.markdown("[Go to WellnessVC Contact Page](https://www.wellnessvc.com.au/contact)")
 
