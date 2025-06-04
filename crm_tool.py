@@ -19,7 +19,7 @@ def get_base64_logo(img_path):
 
 logo_base64 = get_base64_logo(pharma_logo_path)
 
-# --- Custom Header: Logo on Top, Header Below ---
+# --- Header ---
 st.markdown(f"""
 <div style="text-align: center;">
     <img src="data:image/png;base64,{logo_base64}" alt="PharmaPrograms" style="height: 100px;">
@@ -180,12 +180,15 @@ Recommendation: Resupply up to 12 months. Document BP, BMI, counselling."""
     st.markdown("---")
     st.subheader("Step 4: Summary and Telehealth Option")
 
+    dob_display = dob.strftime("%d/%m/%Y")
+    consult_display = consult_date.strftime("%d/%m/%Y")
+
     full_summary = f"""Pharmacist Consultation Summary
 ----------------------------
 Patient: {fname} {lname}
-DOB: {dob}, Sex: {sex}
+DOB: {dob_display}, Sex: {sex}
 Pharmacist: {pharmacist_name}, AHPRA: {ahpra}
-Consultation Date: {consult_date}
+Consultation Date: {consult_display}
 
 {summary}
 """
@@ -201,4 +204,5 @@ Consultation Date: {consult_date}
     with col2:
         st.markdown("If patient is ineligible or prefers remote care:")
         st.markdown("[Go to WellnessVC Contact Page](https://www.wellnessvc.com.au/contact)")
+
 
