@@ -23,7 +23,7 @@ logo_base64 = get_base64_logo(pharma_logo_path)
 st.markdown(f"""
 <div style="text-align: center;">
     <img src="data:image/png;base64,{logo_base64}" alt="PharmaPrograms" style="height: 100px;">
-    <h1 style="margin-top: 10px;">Pharmacist CRM Tool</h1>
+    <h1 style="margin-top: 10px;">Pharmacist Clinical Consultation Tool</h1>
 </div>
 """, unsafe_allow_html=True)
 
