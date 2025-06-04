@@ -11,7 +11,7 @@ st.set_page_config(page_title="Pharmacist CRM Tool", layout="centered")
 pharma_logo_path = "pharmaprograms_logo.png"
 wellness_logo = Image.open("wellnessvc_logo.png")
 
-# --- Base64 Logo Converter ---
+# --- Convert Logo to Base64 for HTML Embedding ---
 def get_base64_logo(img_path):
     buffered = BytesIO()
     Image.open(img_path).save(buffered, format="PNG")
@@ -19,11 +19,11 @@ def get_base64_logo(img_path):
 
 logo_base64 = get_base64_logo(pharma_logo_path)
 
-# --- Custom Header: PharmaPrograms Logo + Title ---
+# --- Custom Header: Logo on Top, Header Below ---
 st.markdown(f"""
-<div style="display: flex; align-items: center; gap: 20px;">
+<div style="text-align: center;">
     <img src="data:image/png;base64,{logo_base64}" alt="PharmaPrograms" style="height: 100px;">
-    <h1 style="margin: 0;">Pharmacist CRM Tool</h1>
+    <h1 style="margin-top: 10px;">Pharmacist CRM Tool</h1>
 </div>
 """, unsafe_allow_html=True)
 
@@ -181,4 +181,5 @@ Consultation Date: {consult_date}
     with col2:
         st.markdown("If patient is ineligible or prefers remote care:")
         st.markdown("[Go to WellnessVC Contact Page](https://www.wellnessvc.com.au/contact)")
+
 
