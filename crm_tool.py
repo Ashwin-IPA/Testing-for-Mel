@@ -9,9 +9,12 @@ wellness_logo = Image.open("wellnessvc_logo.png")
 # --- Page Setup ---
 st.set_page_config(page_title="Pharmacist CRM Tool", layout="centered")
 
-# --- Header with PharmaPrograms logo and Title ---
-st.image(pharma_logo, width=300)
-st.markdown("<h1 style='text-align: center;'>Pharmacist CRM Tool</h1>", unsafe_allow_html=True)
+# --- Header Section: Logo + Title Aligned ---
+col1, col2 = st.columns([1, 4])
+with col1:
+    st.image(pharma_logo, width=100)
+with col2:
+    st.markdown("<h1 style='margin-top: 10px;'>Pharmacist CRM Tool</h1>", unsafe_allow_html=True)
 
 st.subheader("Step 1: Patient & Pharmacist Intake")
 
@@ -167,4 +170,3 @@ Consultation Date: {consult_date}
     with col2:
         st.markdown("If patient is ineligible or prefers remote care:")
         st.markdown("[Go to WellnessVC Contact Page](https://www.wellnessvc.com.au/contact)")
-
