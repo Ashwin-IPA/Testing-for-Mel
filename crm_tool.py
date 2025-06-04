@@ -34,7 +34,7 @@ with st.form("intake_form"):
     st.markdown("Patient Information")
     fname = st.text_input("First name*")
     lname = st.text_input("Surname*")
-    dob = st.date_input("Date of Birth*", max_value=date.today())
+    dob = st.date_input("Date of Birth*", value=date(2000, 1, 1), max_value=date.today())
     sex = st.selectbox("Sex*", ["Female", "Male", "Other"])
     street = st.text_input("Street")
     suburb = st.text_input("Suburb")
@@ -72,15 +72,35 @@ with st.form("intake_form"):
 
 # --- Logic Engine ---
 if submit:
+    today = date.today()
+    age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
     st.markdown("---")
     st.subheader("Step 2: Eligibility Summary")
 
-    age = date.today().year - dob.year
-    eligible_uti = (sex == "Female" and 18 <= age <= 65 and len(uti_symptoms) >= 2 
-                    and not pregnant and not immunocompromised)
-    eligible_oc = (sex == "Female" and on_oc and age >= 16 and gp_reviewed 
-                   and bp_safe and not smoker_over_35 
-                   and not migraine_aura and not vte_history and not cancer_history)
+    # UTI Eligibility
+    eligible_uti = (
+        sex == "Female" and
+        18 <= age <= 65 and
+        len(uti_symptoms) >= 2 and
+        not pregnant and
+        not immunocompromised
+    )
+
+    # OC Eligibility
+    eligible_oc = (
+        sex == "Female" and
+        age >= 16 and
+        on_oc and
+        gp_reviewed and
+        bp_safe and
+        not smoker_over_35 and
+        not migraine_aura and
+        not vte_history and
+        not cancer_history
+    )
+
+    # Dermatology Eligibility
     eligible_derm = (skin_condition != "None")
 
     if eligible_uti:
@@ -179,7 +199,6 @@ Consultation Date: {consult_date}
     with col1:
         st.image(wellness_logo, width=80)
     with col2:
-        st.markdown("If patient is both legible OR ineligible, please direct to:")
+        st.markdown("If patient is ineligible or prefers remote care:")
         st.markdown("[Go to WellnessVC Contact Page](https://www.wellnessvc.com.au/contact)")
-
 
